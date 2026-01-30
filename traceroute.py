@@ -49,8 +49,8 @@ class IPv4:
         self.ttl=int(b[64:72],2)
         self.proto=int(b[72:80],2)
         self.cksum=int(b[80:96],2)
-        self.src=str(b[96:104])+'.'+str(b[104:112])+'.'+str(b[112:120])+'.'+str(b[120:128])
-        self.dst=str(b[128:136])+'.'+str(b[136:144])+'.'+str(b[144:152])+'.'+str(b[152:160])
+        self.src=str(int(b[96:104],2))+'.'+str(int(b[104:112],2))+'.'+str(int(b[112:120],2))+'.'+str(int(b[120:128],2))
+        self.dst=str(int(b[128:136],2))+'.'+str(int(b[136:144],2))+'.'+str(int(b[144:152],2))+'.'+str(int(b[152:160],2))
 
     def __str__(self) -> str:
         return f"IPv{self.version} (tos 0x{self.tos:x}, ttl {self.ttl}, " + \
@@ -129,20 +129,20 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
     # TODO Add your implementation
     ips=[]
     for ttl in range(1, TRACEROUTE_MAX_TTL+1):
-        addresses=[]
+        addresses=set()
         for _ in range(1,PROBE_ATTEMPT_COUNT+1):
             sendsock.set_ttl(ttl)
             sendsock.sendto("Hello".encode(), (ip, TRACEROUTE_PORT_NUMBER))
             if recvsock.recv_select():  # Check if there's a packet to process.
                 buf, address = recvsock.recvfrom()  # Receive the packet.
-                addresses.append(address[0])
+                addresses.add(address[0])
                 type=ICMP(buf[20:]).type
                 if type==3:
                     util.print_result(addresses, ttl)
-                    ips.append(addresses)
+                    ips.append(list(addresses))
                     return ips
         util.print_result(addresses, ttl)
-        ips.append(addresses)
+        ips.append(list(addresses))
     return ips
     # sendsock.set_ttl(TRACEROUTE_MAX_TTL)
     # sendsock.sendto("Hello".encode(), (ip, TRACEROUTE_PORT_NUMBER))
