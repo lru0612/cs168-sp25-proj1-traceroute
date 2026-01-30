@@ -40,7 +40,7 @@ class IPv4:
     def __init__(self, buffer: bytes):
         b = ''.join(format(byte, '08b') for byte in [*buffer])
         self.version=int(b[:4],2)
-        self.header_len=int(b[4:8],2)
+        self.header_len=int(b[4:8],2)*4
         self.tos=int(b[8:16],2)
         self.length=int(b[16:32],2)
         self.id=int(b[32:48],2)
@@ -127,6 +127,7 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
     """
 
     # TODO Add your implementation
+    ips=[]
     for ttl in range(1, TRACEROUTE_MAX_TTL+1):
         addresses=[]
         for _ in range(1,PROBE_ATTEMPT_COUNT+1):
@@ -138,9 +139,11 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
                 type=ICMP(buf[20:]).type
                 if type==3:
                     util.print_result(addresses, ttl)
-                    return addresses
+                    ips.append(addresses)
+                    return ips
         util.print_result(addresses, ttl)
-    return addresses
+        ips.append(addresses)
+    return ips
     # sendsock.set_ttl(TRACEROUTE_MAX_TTL)
     # sendsock.sendto("Hello".encode(), (ip, TRACEROUTE_PORT_NUMBER))
     # if recvsock.recv_select():  # Check if there's a packet to process.
