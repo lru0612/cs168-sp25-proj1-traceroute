@@ -100,6 +100,12 @@ class ICMP:
         self.type=int(b[:8],2)
         self.code=int(b[8:16],2)
         self.cksum=int(b[16:32],2)
+        self.ipv4=IPv4(buffer[8:])
+        udp_start=8+self.ipv4.header_len
+        if len(buffer) >= udp_start + 8:  
+            self.udp=UDP(buffer[udp_start:])
+        else:
+            self.udp = None 
 
     def __str__(self) -> str:
         return f"ICMP (type {self.type}, code {self.code}, " + \
@@ -126,13 +132,22 @@ class UDP:
         self.dst_port=int(b[16:32],2)
         self.len=int(b[32:48],2)
         self.cksum=int(b[48:64],2)
+        self.payload = buffer[8:self.len]
+        try:
+            self.payload_str = self.payload.decode('utf-8')
+        except UnicodeDecodeError:
+            self.payload_str = None  
 
     def __str__(self) -> str:
         return f"UDP (src_port {self.src_port}, dst_port {self.dst_port}, " + \
             f"len {self.len}, cksum 0x{self.cksum:x})"
 
 # TODO feel free to add helper functions if you'd like
-
+def convert_set2list(listofset):
+    ls=[]
+    for set in listofset:
+        ls.append(list(set))
+    return ls
 def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
         -> list[list[str]]:
     """ Run traceroute and returns the discovered path.
@@ -159,7 +174,7 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
         addresses=set()
         for _ in range(1,PROBE_ATTEMPT_COUNT+1):
             sendsock.set_ttl(ttl)
-            sendsock.sendto("Hello".encode(), (ip, TRACEROUTE_PORT_NUMBER))
+            sendsock.sendto("hello".encode(), (ip, TRACEROUTE_PORT_NUMBER+ttl))
             if recvsock.recv_select():  # Check if there's a packet to process.
                 buf, address = recvsock.recvfrom()  # Receive the packet.
                 if not IPv4_lencheck(buf):
@@ -169,14 +184,25 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
                 if not ipv4.is_valid():
                     print("IPv4 is_valid failed")
                     continue
-                addresses.add(address[0])
                 icmp=ICMP(ipv4.payload)
+                this_ttl=icmp.udp.dst_port-TRACEROUTE_PORT_NUMBER
+                # print(this_ttl)
+                if this_ttl==ttl:
+                    addresses.add(address[0])
+                elif not (this_ttl > 0 and this_ttl <=30):
+                    continue
+                else:
+                    ips[this_ttl-1].add(address[0])
                 if icmp.type==3:
-                    util.print_result(addresses, ttl)
                     ips.append(list(addresses))
+                    ips=convert_set2list(ips)
+                    for ttl, this_addresses in enumerate(ips):
+                        util.print_result(this_addresses, ttl+1)
                     return ips
-        util.print_result(addresses, ttl)
-        ips.append(list(addresses))
+        ips.append(addresses)
+    ips=convert_set2list(ips)
+    for ttl, this_addresses in enumerate(ips):
+        util.print_result(this_addresses, ttl+1)
     return ips
     # sendsock.set_ttl(TRACEROUTE_MAX_TTL)
     # sendsock.sendto("Hello".encode(), (ip, TRACEROUTE_PORT_NUMBER))
