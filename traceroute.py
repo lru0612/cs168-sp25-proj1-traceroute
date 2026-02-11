@@ -39,6 +39,7 @@ class IPv4:
 
     def __init__(self, buffer: bytes):
         b = ''.join(format(byte, '08b') for byte in [*buffer])
+        self.b=b
         self.version=int(b[:4],2)
         self.header_len=int(b[4:8],2)*4
         self.tos=int(b[8:16],2)
@@ -51,7 +52,7 @@ class IPv4:
         self.cksum=int(b[80:96],2)
         self.src=str(int(b[96:104],2))+'.'+str(int(b[104:112],2))+'.'+str(int(b[112:120],2))+'.'+str(int(b[120:128],2))
         self.dst=str(int(b[128:136],2))+'.'+str(int(b[136:144],2))+'.'+str(int(b[144:152],2))+'.'+str(int(b[152:160],2))
-        self.payload=buffer[self.header_len*8:]
+        self.payload=buffer[self.header_len:]
     def __str__(self) -> str:
         return f"IPv{self.version} (tos 0x{self.tos:x}, ttl {self.ttl}, " + \
             f"id {self.id}, flags 0x{self.flags:x}, " + \
@@ -71,11 +72,15 @@ class IPv4:
                 return False
         return True
 def IPv4_lencheck(buffer) -> bool:
-    if len(buffer)< (int(buffer[4:8],2)*32+int(buffer[16:32],2)*8):
+    b = ''.join(format(byte, '08b') for byte in [*buffer])
+    if len(b)< int(b[16:32],2)*8:
+        print("len(b)< (int(b[4:8],2)*32+int(b[16:32],2)*8)")
+        print(len(b))
+        print(int(b[4:8],2)*32+int(b[16:32],2)*8)
         return False
     else:
         ipv4=IPv4(buffer)
-        if len(ipv4.payload)<32:
+        if len(ipv4.payload)<8:
             return False
     return True
         
@@ -158,12 +163,14 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
             if recvsock.recv_select():  # Check if there's a packet to process.
                 buf, address = recvsock.recvfrom()  # Receive the packet.
                 if not IPv4_lencheck(buf):
+                    print("IPv4_lencheck failed")
                     continue
                 ipv4=IPv4(buf)
                 if not ipv4.is_valid():
+                    print("IPv4 is_valid failed")
                     continue
                 addresses.add(address[0])
-                icmp=ICMP(buf[ipv4.header_len*8:])
+                icmp=ICMP(ipv4.payload)
                 if icmp.type==3:
                     util.print_result(addresses, ttl)
                     ips.append(list(addresses))
