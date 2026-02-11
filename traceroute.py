@@ -1,3 +1,4 @@
+from sympy import false
 import util
 
 # Your program should send TTLs in the range [1, TRACEROUTE_MAX_TTL] inclusive.
@@ -51,7 +52,7 @@ class IPv4:
         self.cksum=int(b[80:96],2)
         self.src=str(int(b[96:104],2))+'.'+str(int(b[104:112],2))+'.'+str(int(b[112:120],2))+'.'+str(int(b[120:128],2))
         self.dst=str(int(b[128:136],2))+'.'+str(int(b[136:144],2))+'.'+str(int(b[144:152],2))+'.'+str(int(b[152:160],2))
-
+        self.payload=buffer[self.header_len*8:]
     def __str__(self) -> str:
         return f"IPv{self.version} (tos 0x{self.tos:x}, ttl {self.ttl}, " + \
             f"id {self.id}, flags 0x{self.flags:x}, " + \
@@ -59,7 +60,26 @@ class IPv4:
             f"proto {self.proto}, header_len {self.header_len}, " + \
             f"len {self.length}, cksum 0x{self.cksum:x}) " + \
             f"{self.src} > {self.dst}"
-
+    def is_icmp(self) -> bool:
+        return self.proto==1 or self.proto==58
+    def is_valid(self) -> bool:
+        # icmp check:
+        if not self.is_icmp():
+            return False
+        else:
+            icmp=ICMP(self.payload)
+            if not icmp.is_valid():
+                return False
+        return True
+def IPv4_lencheck(buffer) -> bool:
+    if len(buffer)< (int(buffer[4:8],2)*32+int(buffer[16:32],2)*8):
+        return False
+    else:
+        ipv4=IPv4(buffer)
+        if len(ipv4.payload)<32:
+            return False
+    return True
+        
 
 class ICMP:
     # Each member below is a field from the ICMP header.  They are listed below
@@ -82,7 +102,7 @@ class ICMP:
             f"cksum 0x{self.cksum:x})"
 
     def is_valid(self) -> bool:
-        return self.type==3 or self.type==11
+        return self.type==3 or (self.type==11 and self.code==0)
 
 
 class UDP:
@@ -138,9 +158,14 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
             sendsock.sendto("Hello".encode(), (ip, TRACEROUTE_PORT_NUMBER))
             if recvsock.recv_select():  # Check if there's a packet to process.
                 buf, address = recvsock.recvfrom()  # Receive the packet.
+                if not IPv4_lencheck(buf):
+                    continue
+                ipv4=IPv4(buf)
+                if not ipv4.is_valid():
+                    continue
                 addresses.add(address[0])
-                icmp=ICMP(buf[20:])
-                if icmp.is_valid():
+                icmp=ICMP(buf[ipv4.header_len*8:])
+                if icmp.type==3:
                     util.print_result(addresses, ttl)
                     ips.append(list(addresses))
                     return ips
