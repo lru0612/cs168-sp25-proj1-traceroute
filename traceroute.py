@@ -103,12 +103,13 @@ class ICMP:
         self.type=int(b[:8],2)
         self.code=int(b[8:16],2)
         self.cksum=int(b[16:32],2)
-        self.ipv4=IPv4(buffer[8:])
-        udp_start=8+self.ipv4.header_len
-        if len(buffer) >= udp_start + 8:  
-            self.udp=UDP(buffer[udp_start:])
-        else:
-            self.udp = None 
+        if len(buffer)>28:
+            self.ipv4=IPv4(buffer[8:])
+            udp_start=8+self.ipv4.header_len
+            if len(buffer) >= udp_start + 8:  
+                self.udp=UDP(buffer[udp_start:])
+            else:
+                self.udp = None 
 
     def __str__(self) -> str:
         return f"ICMP (type {self.type}, code {self.code}, " + \
@@ -198,8 +199,7 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
                     for ttl, this_addresses in enumerate(ips):
                         util.print_result(this_addresses, ttl+1)
                     return ips
-        if ttl!=TRACEROUTE_MAX_TTL or (ttl==TRACEROUTE_MAX_TTL and len(addresses)>0):
-            ips.append(addresses)
+        ips.append(addresses)
     ips=convert_set2list(ips)
     for ttl, this_addresses in enumerate(ips):
         util.print_result(this_addresses, ttl+1)
