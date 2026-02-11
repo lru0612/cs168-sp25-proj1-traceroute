@@ -176,32 +176,35 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
             attempt+=1
             sendsock.set_ttl(ttl)
             sendsock.sendto("hello".encode(), (ip, TRACEROUTE_PORT_NUMBER+ttl))
-        attempt=0
-        while attempt < PROBE_ATTEMPT_COUNT:
-            if recvsock.recv_select():  # Check if there's a packet to process.
-                buf, address = recvsock.recvfrom()  # Receive the packet.
-                if not IPv4_lencheck(buf):
-                    print("IPv4_lencheck failed")
-                    continue
-                ipv4=IPv4(buf)
-                if not ipv4.is_valid():
-                    print("IPv4 is_valid failed")
-                    continue
-                icmp=ICMP(ipv4.payload)
-                this_ttl=icmp.udp.dst_port-TRACEROUTE_PORT_NUMBER
-                print(this_ttl)
-                if this_ttl==ttl:
-                    ips[this_ttl-1].add(address[0])
-                elif not (this_ttl > 0 and this_ttl <=30) or this_ttl>ttl:
-                    continue
+            flag=True
+            while(flag):
+                if recvsock.recv_select():  # Check if there's a packet to process.
+                    buf, address = recvsock.recvfrom()  # Receive the packet.
+                    if not IPv4_lencheck(buf):
+                        print("IPv4_lencheck failed")
+                        continue
+                    ipv4=IPv4(buf)
+                    if not ipv4.is_valid():
+                        print("IPv4 is_valid failed")
+                        continue
+                    icmp=ICMP(ipv4.payload)
+                    this_ttl=icmp.udp.dst_port-TRACEROUTE_PORT_NUMBER
+                    print(this_ttl)
+                    if this_ttl==ttl:
+                        ips[this_ttl-1].add(address[0])
+                        flag=False
+                    elif not (this_ttl > 0 and this_ttl <=30) or this_ttl>ttl:
+                        continue
+                    else:
+                        attempt=attempt-1
+                        ips[this_ttl-1].add(address[0])
+                    if icmp.type==3:
+                        ips=convert_set2list(ips)
+                        # for ttl, this_addresses in enumerate(ips):
+                        #     util.print_result(this_addresses, ttl+1)
+                        return ips
                 else:
-                    attempt=attempt-1
-                    ips[this_ttl-1].add(address[0])
-                if icmp.type==3:
-                    ips=convert_set2list(ips)
-                    # for ttl, this_addresses in enumerate(ips):
-                    #     util.print_result(this_addresses, ttl+1)
-                    return ips
+                    flag=False
     ips=convert_set2list(ips)
     # for ttl, this_addresses in enumerate(ips):
     #     util.print_result(this_addresses, ttl+1)
