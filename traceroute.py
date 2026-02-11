@@ -197,7 +197,8 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
                 else:
                     ips[this_ttl-1].add(address[0])
                 if icmp.type==3:
-                    ips.append(addresses)
+                    if len(addresses)>0:
+                        ips.append(addresses)
                     ips=convert_set2list(ips)
                     for ttl, this_addresses in enumerate(ips):
                         util.print_result(this_addresses, ttl+1)
