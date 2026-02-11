@@ -81,6 +81,9 @@ class ICMP:
         return f"ICMP (type {self.type}, code {self.code}, " + \
             f"cksum 0x{self.cksum:x})"
 
+    def is_valid(self) -> bool:
+        return self.type==3 or self.type==11
+
 
 class UDP:
     # Each member below is a field from the UDP header.  They are listed below
@@ -136,8 +139,8 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
             if recvsock.recv_select():  # Check if there's a packet to process.
                 buf, address = recvsock.recvfrom()  # Receive the packet.
                 addresses.add(address[0])
-                type=ICMP(buf[20:]).type
-                if type==3:
+                icmp=ICMP(buf[20:])
+                if icmp.is_valid():
                     util.print_result(addresses, ttl)
                     ips.append(list(addresses))
                     return ips
