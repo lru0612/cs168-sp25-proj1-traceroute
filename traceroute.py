@@ -1,4 +1,3 @@
-from sympy import false
 import util
 
 # Your program should send TTLs in the range [1, TRACEROUTE_MAX_TTL] inclusive.
