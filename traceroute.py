@@ -190,15 +190,11 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
                 print(this_ttl)
                 if this_ttl==ttl:
                     ips[this_ttl-1].add(address[0])
-                    if address[0] == "3.3.3.3":
-                        assert this_ttl==2
                 elif not (this_ttl > 0 and this_ttl <=30) or this_ttl>ttl:
                     continue
                 else:
                     attempt=attempt-1
                     ips[this_ttl-1].add(address[0])
-                    if address[0] == "3.3.3.3":
-                        assert this_ttl==2
                 if icmp.type==3:
                     ips=convert_set2list(ips)
                     # for ttl, this_addresses in enumerate(ips):
