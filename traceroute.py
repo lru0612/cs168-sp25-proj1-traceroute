@@ -96,6 +96,9 @@ class ICMP:
     cksum: int
 
     def __init__(self, buffer: bytes):
+        if len(buffer) < 8: 
+            raise ValueError(f"ICMP buffer too short: {len(buffer)} bytes")
+    
         b = ''.join(format(byte, '08b') for byte in [*buffer])
         self.type=int(b[:8],2)
         self.code=int(b[8:16],2)
@@ -186,15 +189,15 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
                     continue
                 icmp=ICMP(ipv4.payload)
                 this_ttl=icmp.udp.dst_port-TRACEROUTE_PORT_NUMBER
-                # print(this_ttl)
+                print(this_ttl)
                 if this_ttl==ttl:
                     addresses.add(address[0])
-                elif not (this_ttl > 0 and this_ttl <=30):
+                elif not (this_ttl > 0 and this_ttl <=30) or this_ttl>ttl:
                     continue
                 else:
                     ips[this_ttl-1].add(address[0])
                 if icmp.type==3:
-                    ips.append(list(addresses))
+                    ips.append(addresses)
                     ips=convert_set2list(ips)
                     for ttl, this_addresses in enumerate(ips):
                         util.print_result(this_addresses, ttl+1)
