@@ -189,12 +189,12 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
                 this_ttl=icmp.udp.dst_port-TRACEROUTE_PORT_NUMBER
                 print(this_ttl)
                 if this_ttl==ttl:
-                    addresses.add(address[0]+f".{this_ttl}")
+                    addresses.add(address[0][-4:]+f".{this_ttl}")
                 elif not (this_ttl > 0 and this_ttl <=30) or this_ttl>ttl:
                     continue
                 else:
                     attempt=attempt-1
-                    ips[this_ttl-1].add(address[0]+f".{this_ttl}")
+                    ips[this_ttl-1].add(address[0][-4:]+f".{this_ttl}")
                 if icmp.type==3:
                     if len(addresses)>0:
                         ips.append(addresses)
