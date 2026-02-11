@@ -170,7 +170,7 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
     # TODO Add your implementation
     ips=[]
     for ttl in range(1, TRACEROUTE_MAX_TTL+1):
-        ips.append([])
+        ips.append(set())
         attempt=0
         while attempt < PROBE_ATTEMPT_COUNT:
             attempt+=1
