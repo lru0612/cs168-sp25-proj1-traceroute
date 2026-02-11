@@ -135,11 +135,6 @@ class UDP:
         self.dst_port=int(b[16:32],2)
         self.len=int(b[32:48],2)
         self.cksum=int(b[48:64],2)
-        self.payload = buffer[8:self.len]
-        try:
-            self.payload_str = self.payload.decode('utf-8')
-        except UnicodeDecodeError:
-            self.payload_str = None  
 
     def __str__(self) -> str:
         return f"UDP (src_port {self.src_port}, dst_port {self.dst_port}, " + \
@@ -203,7 +198,8 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
                     for ttl, this_addresses in enumerate(ips):
                         util.print_result(this_addresses, ttl+1)
                     return ips
-        ips.append(addresses)
+        if ttl!=TRACEROUTE_MAX_TTL or (ttl==TRACEROUTE_MAX_TTL and len(addresses)>0):
+            ips.append(addresses)
     ips=convert_set2list(ips)
     for ttl, this_addresses in enumerate(ips):
         util.print_result(this_addresses, ttl+1)
