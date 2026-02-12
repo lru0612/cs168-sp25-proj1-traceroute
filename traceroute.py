@@ -170,8 +170,7 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
     # TODO Add your implementation
     ips=[]
     for ttl in range(1, TRACEROUTE_MAX_TTL+1):
-        ips.append(list())
-        attempt=0
+        ips.append(set())
         for _ in range(PROBE_ATTEMPT_COUNT):
             sendsock.set_ttl(ttl)
             sendsock.sendto("hello".encode(), (ip, TRACEROUTE_PORT_NUMBER+ttl))
@@ -192,22 +191,24 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
                     this_ttl=icmp.udp.dst_port-TRACEROUTE_PORT_NUMBER
                     print(this_ttl)
                     if this_ttl==ttl:
-                        ips[this_ttl-1].append(address[0])
+                        ips[this_ttl-1].add(address[0])
                         flag=False
                     elif not (this_ttl > 0 and this_ttl <=30) or this_ttl>ttl:
                         continue
                     else:
-                        ips[this_ttl-1].append(address[0])
+                        # ips[this_ttl-1].append(address[0])
+                        print("continue!")
+                        continue 
                     if icmp.type==3:
                         ips=convert_set2list(ips)
-                        for ttl, this_addresses in enumerate(ips):
-                            util.print_result(this_addresses, ttl+1)
+                        for i, this_addresses in enumerate(ips):
+                            util.print_result(this_addresses, i+1)
                         return ips
                 else:
                     flag=False
     ips=convert_set2list(ips)
-    for ttl, this_addresses in enumerate(ips):
-        util.print_result(this_addresses, ttl+1)
+    for i, this_addresses in enumerate(ips):
+        util.print_result(this_addresses, i+1)
     return ips
     # sendsock.set_ttl(TRACEROUTE_MAX_TTL)
     # sendsock.sendto("Hello".encode(), (ip, TRACEROUTE_PORT_NUMBER))
