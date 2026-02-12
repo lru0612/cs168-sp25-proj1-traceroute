@@ -172,8 +172,7 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
     for ttl in range(1, TRACEROUTE_MAX_TTL+1):
         ips.append(list())
         attempt=0
-        while attempt < PROBE_ATTEMPT_COUNT:
-            attempt+=1
+        for _ in range(PROBE_ATTEMPT_COUNT):
             sendsock.set_ttl(ttl)
             sendsock.sendto("hello".encode(), (ip, TRACEROUTE_PORT_NUMBER+ttl))
             flag=True
@@ -196,7 +195,6 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
                     elif not (this_ttl > 0 and this_ttl <=30) or this_ttl>ttl:
                         continue
                     else:
-                        attempt=attempt-1
                         ips[this_ttl-1].append(address[0])
                     if icmp.type==3:
                         ips=convert_set2list(ips)
