@@ -61,7 +61,7 @@ class IPv4:
             f"len {self.length}, cksum 0x{self.cksum:x}) " + \
             f"{self.src} > {self.dst}"
     def is_icmp(self) -> bool:
-        return self.proto==1 or self.proto==58
+        return self.proto==1
     def is_valid(self) -> bool:
         # icmp check:
         if not self.is_icmp():
@@ -187,6 +187,8 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
                         print("IPv4 is_valid failed")
                         continue
                     icmp=ICMP(ipv4.payload)
+                    if icmp.ipv4.dst != ip:
+                        continue
                     this_ttl=icmp.udp.dst_port-TRACEROUTE_PORT_NUMBER
                     print(this_ttl)
                     if this_ttl==ttl:
@@ -198,14 +200,14 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
                         ips[this_ttl-1].append(address[0])
                     if icmp.type==3:
                         ips=convert_set2list(ips)
-                        # for ttl, this_addresses in enumerate(ips):
-                        #     util.print_result(this_addresses, ttl+1)
+                        for ttl, this_addresses in enumerate(ips):
+                            util.print_result(this_addresses, ttl+1)
                         return ips
                 else:
                     flag=False
     ips=convert_set2list(ips)
-    # for ttl, this_addresses in enumerate(ips):
-    #     util.print_result(this_addresses, ttl+1)
+    for ttl, this_addresses in enumerate(ips):
+        util.print_result(this_addresses, ttl+1)
     return ips
     # sendsock.set_ttl(TRACEROUTE_MAX_TTL)
     # sendsock.sendto("Hello".encode(), (ip, TRACEROUTE_PORT_NUMBER))
